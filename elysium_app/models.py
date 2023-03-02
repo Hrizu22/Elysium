@@ -3,10 +3,9 @@ from django.core.validators import MinValueValidator,MaxValueValidator
 from django.contrib.auth.models import User
 # Create your models here.
 
-class ClientInfo(models.Model):
+class PlatformInfo(models.Model):
     name= models.CharField(max_length=255)
     boughtFrom = models.URLField(max_length=50)
-    description = models.CharField(max_length=50)
     def __str__(self):
         return self.name
 
@@ -14,8 +13,7 @@ class Stock(models.Model):
     name = models.CharField(max_length=50)
     boughtFor = models.IntegerField()
     hold = models.BooleanField(default=True)
-    platform = models.ForeignKey(ClientInfo, on_delete=models.CASCADE, related_name="holder")
-    active = models.BooleanField(default=True)
+    platform = models.ForeignKey(PlatformInfo, on_delete=models.CASCADE, related_name="holder")
     number_rating = models.IntegerField(default=0)
     avg_rating = models.FloatField(default=0)
     created = models.DateTimeField(auto_now_add=True)

@@ -1,4 +1,4 @@
-# from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 # from rest_framework.decorators import api_view
 from rest_framework import generics 
@@ -14,21 +14,12 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.throttling import UserRateThrottle,AnonRateThrottle,ScopedRateThrottle
 
 
-from elysium_app.models import Stock,ClientInfo,Review
-from elysium_app.api.serializers import StocksSerializer,ClientInfoSerializer,ReviewSerializer
+from elysium_app.models import Stock,PlatformInfo,Review
+from elysium_app.api.serializers import StocksSerializer,PlatformInfoSerializer,ReviewSerializer
 from elysium_app.api.throttling import ReviewCreateThrottle,ReviewListThrottle
 from elysium_app.api.pagination import StockListPagination,StockListLOPagination,StockListCPagination
 
-# class ReviewListVS(viewsets.ViewSet):
-#     def list(self,request):
-#         queryset = ClientInfo.objects.all()
-#         serializer = ClientInfoSerializer(queryset,many=True)
-#         return Response(serializer.data)
-#     def retrieve(self,request,pk=None):
-#         queryset = ClientInfo.objects.all()
-#         holder = get_object_or_404(queryset,pk=pk)
-#         serializer = ClientInfoSerializer(holder)
-#         return Response(serializer.data)
+
     
 class UserReview(generics.ListAPIView):
     # queryset = Review.objects.all()
@@ -93,60 +84,44 @@ class ReviewDetail(generics.RetrieveUpdateDestroyAPIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = 'review-detail'
 
-# class ReviewDetail(mixins.RetrieveModelMixin,generics.GenericAPIView):
-#     queryset = Review.objects.all()
-#     serializer_class = ReviewSerializer
-#     def get(self, request, *args, **kwargs):
-#         return self.retrieve(request, *args, **kwargs)
-
-# class ReviewList(mixins.ListModelMixin,
-#                     mixins.CreateModelMixin,
-#                     generics.GenericAPIView):
-#     queryset = Review.objects.all()
-#     serializer_class = ReviewSerializer
-
-#     def get(self, request, *args, **kwargs):
-#         return self.list(request, *args, **kwargs)
-
-#     def post(self, request, *args, **kwargs):
-#         return self.create(request, *args, **kwargs)
-
-#     # def delete(self, request, *args, **kwargs):
-#     #     return self.destroy(request, *args, **kwargs)
-
-class ClientInfoVS(viewsets.ModelViewSet):
-    queryset = ClientInfo.objects.all()
-    serializer_class = ClientInfoSerializer
+class PlatformInfoVS(viewsets.ModelViewSet):
+    queryset = PlatformInfo.objects.all()
+    serializer_class = PlatformInfoSerializer
     permission_classes = [IsAdminOrReadOnly]
+    throttle_classes = [AnonRateThrottle]
 
-class ClientInfoAV(APIView):
+class PlatformInfoAV(APIView):
     permission_class = [IsAdminOrReadOnly]
     def get(self,request):
-        info = ClientInfo.objects.all()
-        serializer = ClientInfoSerializer(info,many=True)
+        info = PlatformInfo.objects.all()
+        serializer = PlatformInfoSerializer(
+            info, many=True, context={'request': request})
+        
         return Response(serializer.data)
     def post(self,request):
-        serializer = ClientInfoSerializer(data=request.data)
+        serializer = PlatformInfoSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         else:
             return Response(serializer.data)
         
-class ClientInfoDetailAV(APIView):
+class PlatformInfoDetailAV(APIView):
     permission_class = [IsAdminOrReadOnly]
+    throttle_classes = [AnonRateThrottle]
     def get(self,request,pk):
         try:
-            info=ClientInfo.objects.get(pk=pk)
-        except ClientInfo.DoesNotExist:
+            info=PlatformInfo.objects.get(pk=pk)
+        except PlatformInfo.DoesNotExist:
             return Response({'Error':'Client not found'},status=status.HTTP_404_NOT_FOUND)
-        serializer= ClientInfoSerializer(
+        
+        serializer= PlatformInfoSerializer(
             info,context={'request':request})
         return Response(serializer.data)
         
-    def put(self,request):
-        
-        serializer=ClientInfoSerializer(data=request.data)
+    def put(self,request,pk):
+        platform = PlatformInfo.objects.get(pk=pk)
+        serializer=PlatformInfoSerializer(platform,data=request.data)
         if serializer.is_valid():
             serializer.save()  
             return Response(serializer.data)
@@ -154,7 +129,7 @@ class ClientInfoDetailAV(APIView):
             return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
     def delete(self,request,pk):
-        info = ClientInfo.objects.get(pk=pk)
+        info = PlatformInfo.objects.get(pk=pk)
         info.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -166,13 +141,14 @@ class StockListGV(generics.ListAPIView):
 
 class StockListAV(APIView):
     permission_class = [IsAdminOrReadOnly]
+    throttle_classes = [AnonRateThrottle]
     def get(self,request):
         stocks =Stock.objects.all()
         serializer = StocksSerializer(stocks,many=True)
         return Response(serializer.data)
     
-    def post(self,request):
-        serializer=StocksSerializer(data=request.data)
+    def post(self, request):
+        serializer = StocksSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -181,16 +157,20 @@ class StockListAV(APIView):
 
 class StockDetailAV(APIView):
     permission_class = [IsAdminOrReadOnly]
+    throttle_classes = [AnonRateThrottle]
+    
     def get(self,request,pk):
         try:
             stock=Stock.objects.get(pk=pk)
         except Stock.DoesNotExist:
             return Response({'Error':'Stock not found'},status=status.HTTP_404_NOT_FOUND)  
+        
         serializer = StocksSerializer(stock)
         return Response(serializer.data)
     
     def put(self,request,pk):
-        serializer=StocksSerializer(data=request.data)
+        holding = Stock.objects.get(pk=pk)
+        serializer=StocksSerializer(holding,data=request.data)
         if serializer.is_valid():
             serializer.save()  
             return Response(serializer.data)
